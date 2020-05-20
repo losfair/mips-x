@@ -1,0 +1,107 @@
+module prediction(
+    clk,
+    rst,
+
+    // Instruction feedback from instruction cache/memory.
+    inst_feedback,
+
+    // Stall feedback from fetch stage.
+    fetch_stall,
+
+    // Branch request from ALU.
+    br_late,
+    br_late_target,
+
+    // Early branch command.
+    early_branch_cmd,
+
+    // PC output for Fetch stage.
+    npc,
+
+    // High when the previous br_late is applied.
+    br_late_done
+);
+
+input wire clk, rst;
+input wire [31:0] inst_feedback;
+input wire fetch_stall;
+input wire br_late;
+input wire [31:0] br_late_target;
+
+// Visible AFTER FF logic.
+input wire [3:0] early_branch_cmd;
+wire early_branch, early_branch_rel, early_branch_if_backward, early_branch_beq;
+assign early_branch = early_branch_cmd[0];
+assign early_branch_rel = early_branch_cmd[1];
+assign early_branch_if_backward = early_branch_cmd[2];
+assign early_branch_beq = early_branch_cmd[3];
+
+output wire [31:0] npc;
+output reg br_late_done;
+
+reg [31:0] pc;
+
+// Relative offset. Visible BEFORE FF logic.
+wire [31:0] rel_offset;
+assign rel_offset = {{14{inst_feedback[15]}}, inst_feedback[15:0], 2'b0};
+
+// The linearly next instruction address of `npc`. BEFORE FF logic.
+wire [31:0] npc_linear_next;
+assign npc_linear_next = npc + 4;
+
+// Possible early branch targets. Calculated by FF logic.
+reg [31:0] early_branch_target_abs;
+reg [31:0] early_branch_target_rel;
+
+// Whether relative offset is less than zero. Calculated by FF logic.
+reg rel_offset_is_backward;
+
+// Selected early branch target. Visible AFTER FF logic.
+wire [31:0] early_branch_target;
+assign early_branch_target = early_branch_rel ? early_branch_target_rel : early_branch_target_abs;
+
+// Caculated early branch decision. AFTER FF logic.
+wire apply_early_branch;
+assign apply_early_branch = early_branch & (!early_branch_if_backward || rel_offset_is_backward);
+
+// Whether this is the first cycle after reset;
+reg first_cycle;
+
+// Combinational forward from DECODE stage.
+// Visible AFTER FF logic.
+assign npc =
+    // Break dependency cycle.
+    first_cycle ? pc :
+    // ALU branch applied by FF logic. Highest priority.
+    br_late_done ? pc :
+    // Early branch applied.
+    apply_early_branch ? early_branch_target :
+    // Direct FF logic output
+    pc;
+
+always @ (posedge clk) begin
+    // Pre-calculate data for comb logic.
+    early_branch_target_abs <= {npc_linear_next[31:28], inst_feedback[25:0], 2'b0};
+    early_branch_target_rel <= npc_linear_next + rel_offset;
+    rel_offset_is_backward <= $signed(rel_offset) < 0;
+end
+
+always @ (posedge clk) begin
+    if(rst) begin
+        pc <= 0;
+        br_late_done <= 0;
+        first_cycle <= 1;
+    end else begin
+        br_late_done <= 0;
+        first_cycle <= 0;
+
+        if(br_late) begin
+            pc <= br_late_target;
+            br_late_done <= 1;
+        end else if(!fetch_stall)
+            // Only move PC forward if we are not in a fetch stall.
+            pc <= npc_linear_next;
+    end
+end
+
+endmodule
