@@ -1,0 +1,25 @@
+signals:
+  exc: 63
+
+  memread: 17
+  memwrite: 18
+  regwrite: 19
+  cp0: 20
+
+  # Whether to override Rd with Rs/Rt.
+  rs_override_rd: 24
+  rt_override_rd: 25
+
+  # ALU const mode.
+  alu_const_mode_16bit_sext: 26
+  alu_const_mode_shift: 27
+
+  # Early branch?
+  early_branch: 30
+  early_branch_rel: 31
+  early_branch_if_backward: 32
+  early_branch_beq: 33
+
+  # Whether to override Rs/Rt with ALU const.
+  alu_const_override_rs: 40
+  alu_const_override_rt: 41
