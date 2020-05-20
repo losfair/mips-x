@@ -15,6 +15,7 @@ always begin
     #5 clk = 1;
     #5 clk = 0;
     rst <= 0;
+    if(exception) $finish();
 end
 
 endmodule

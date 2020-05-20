@@ -3,11 +3,12 @@ base/core.v
 base/delay.v
 base/regfile.v
 base/prediction.v
-base/dm.v
-base/im.v
+
+memory/dm.v
+memory/im.v
+memory/pipeline_decode.v
 
 pipeline/pipeline_fetch.v
-pipeline/pipeline_decode.v
 pipeline/pipeline_regfetch.v
 pipeline/pipeline_bypass.v
 pipeline/pipeline_alu.v

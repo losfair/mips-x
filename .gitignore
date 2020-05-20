@@ -1,2 +1,5 @@
 microcode.hex
 /mips-x
+code.txt
+netlist.json
+synth.v

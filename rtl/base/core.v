@@ -230,9 +230,6 @@ always @ (posedge clk) begin
             memop_disable,
             br_late_done_d1
         );
-        if(final_exception) begin
-            $finish();
-        end
     end
 end
 

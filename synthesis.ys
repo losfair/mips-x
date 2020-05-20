@@ -1,0 +1,13 @@
+
+read_verilog rtl/base/*.v
+read_verilog rtl/pipeline/*.v
+
+hierarchy -top core
+
+# high-level synthesis
+proc; opt; fsm; opt; memory; opt
+
+stat;
+
+write_verilog synth.v
+write_json netlist.json
