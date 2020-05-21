@@ -45,6 +45,7 @@ wire fetch_stall;
 wire br_late_done;
 
 reg first_cycle;
+reg br_late_done_hold;
 
 // Whether the fetch stage needs to be stalled now.
 // Effects:
@@ -73,8 +74,15 @@ prediction prediction_0(
     br_late_done
 );
 
+// Aligned with IM output.
 always @ (posedge clk) begin
-    if(im_enable) br_late_done_d1 <= br_late_done;
+    if(fetch_stall) begin
+        if(br_late_done) br_late_done_hold <= 1;
+        br_late_done_d1 <= 0;
+    end else begin
+        br_late_done_hold <= 0;
+        br_late_done_d1 <= br_late_done_hold | br_late_done;
+    end
 end
 
 always @ (posedge clk) begin

@@ -41,13 +41,13 @@ output reg br_late_done;
 
 reg [31:0] pc;
 
+// Address of the branch delay slot of `npc`. Aligned with DECODE stage.
+reg [31:0] npc_delay_slot;
+always @ (posedge clk) npc_delay_slot <= npc + 4;
+
 // Relative offset. Visible BEFORE FF logic.
 wire [31:0] rel_offset;
 assign rel_offset = {{14{inst_feedback[15]}}, inst_feedback[15:0], 2'b0};
-
-// The linearly next instruction address of `npc`. BEFORE FF logic.
-wire [31:0] npc_linear_next;
-assign npc_linear_next = npc + 4;
 
 // Possible early branch targets. Calculated by FF logic.
 reg [31:0] early_branch_target_abs;
@@ -81,9 +81,9 @@ assign npc =
 
 always @ (posedge clk) begin
     // Pre-calculate data for comb logic.
-    early_branch_target_abs <= {npc_linear_next[31:28], inst_feedback[25:0], 2'b0};
-    early_branch_target_rel <= npc_linear_next + rel_offset;
-    rel_offset_is_backward <= $signed(rel_offset) < 0;
+    early_branch_target_abs <= {npc_delay_slot[31:28], inst_feedback[25:0], 2'b0};
+    early_branch_target_rel <= npc_delay_slot + rel_offset;
+    rel_offset_is_backward <= $signed(rel_offset) < $signed(0);
 end
 
 always @ (posedge clk) begin
@@ -100,7 +100,7 @@ always @ (posedge clk) begin
             br_late_done <= 1;
         end else if(!fetch_stall)
             // Only move PC forward if we are not in a fetch stall.
-            pc <= npc_linear_next;
+            pc <= npc + 4;
     end
 end
 

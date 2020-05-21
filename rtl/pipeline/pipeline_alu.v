@@ -71,6 +71,9 @@ assign rd_pre_override = inst_in[15:11];
 wire [31:0] link_pc;
 assign link_pc = pc_in + 8;
 
+wire [31:0] prediction_false_positive_recovery_pc;
+assign prediction_false_positive_recovery_pc = link_pc;
+
 wire [31:0] alu_const;
 assign alu_const = {{16{inst_in[15]}}, inst_in[15:0]};
 wire [4:0] shift_const;
@@ -186,74 +189,90 @@ always @ (posedge clk) begin
                 rd_value <= rs_val + alu_const;
             end
             7'b1000100: begin // beq
-                br_target <= relative_branch_target;
-                if(rs_val == rt_val) br_late_enable <= 1 ^ backward_jump;
-                else br_late_enable <= 0 ^ backward_jump;
+                if(rs_val == rt_val) begin
+                    br_late_enable <= 1 ^ backward_jump;
+                    br_target <= relative_branch_target;
+                end else begin
+                    br_late_enable <= 0 ^ backward_jump;
+                    br_target <= prediction_false_positive_recovery_pc;
+                end
             end
             7'b1000101: begin // bne
-                br_target <= relative_branch_target;
-                if(rs_val != rt_val) br_late_enable <= 1 ^ backward_jump;
-                else br_late_enable <= 0 ^ backward_jump;
+                if(rs_val != rt_val) begin
+                    br_late_enable <= 1 ^ backward_jump;
+                    br_target <= relative_branch_target;
+                end else begin
+                    br_late_enable <= 0 ^ backward_jump;
+                    br_target <= prediction_false_positive_recovery_pc;
+                end
             end
             7'b1000001: // regimm
                 case (rt_index)
                     5'b00000: begin // bltz
-                        br_target <= relative_branch_target;
-                        if($signed(rs_val) < 0) br_late_enable <= 1 ^ backward_jump;
-                        else br_late_enable <= 0 ^ backward_jump;
-                    end
-                    5'b00001: begin // bgez
-                        br_target <= relative_branch_target;
-                        if($signed(rs_val) >= 0) br_late_enable <= 1 ^ backward_jump;
-                        else br_late_enable <= 0 ^ backward_jump;
-                    end
-                    5'b10000: begin // bltzal
-                        br_target <= relative_branch_target;
-
                         if($signed(rs_val) < 0) begin
                             br_late_enable <= 1 ^ backward_jump;
+                            br_target <= relative_branch_target;
+                        end else begin
+                            br_late_enable <= 0 ^ backward_jump;
+                            br_target <= prediction_false_positive_recovery_pc;
+                        end
+                    end
+                    5'b00001: begin // bgez
+                        if($signed(rs_val) >= 0) begin
+                            br_late_enable <= 1 ^ backward_jump;
+                            br_target <= relative_branch_target;
+                        end else begin
+                            br_late_enable <= 0 ^ backward_jump;
+                            br_target <= prediction_false_positive_recovery_pc;
+                        end
+                    end
+                    5'b10000: begin // bltzal
+                        if($signed(rs_val) < 0) begin
+                            br_late_enable <= 1 ^ backward_jump;
+                            br_target <= relative_branch_target;
                             rd_index <= 31;
                             rd_value <= link_pc; // skip delay slot
                         end else begin
                             br_late_enable <= 0 ^ backward_jump;
+                            br_target <= prediction_false_positive_recovery_pc;
                             rd_index <= 0;
                         end
                     end
                     5'b10010: begin // bltzall
-                        br_target <= relative_branch_target;
-
                         // Predicted LIKELY.
                         if($signed(rs_val) < 0) begin
                             br_late_enable <= 0;
+                            br_target <= relative_branch_target;
                             rd_index <= 31;
                             rd_value <= link_pc; // skip delay slot
                         end else begin
                             br_late_enable <= 1;
+                            br_target <= prediction_false_positive_recovery_pc;
                             rd_index <= 0;
                         end
                     end
                     5'b10001: begin // bgezal
-                        br_target <= relative_branch_target;
-
                         if($signed(rs_val) >= 0) begin
                             br_late_enable <= 1 ^ backward_jump;
+                            br_target <= relative_branch_target;
                             rd_index <= 31;
                             rd_value <= link_pc; // skip delay slot
                         end else begin
                             br_late_enable <= 0 ^ backward_jump;
+                            br_target <= prediction_false_positive_recovery_pc;
                             rd_index <= 0;
                         end
                     end
                     5'b10011: begin // bgezall
-                        br_target <= relative_branch_target;
-
                         // Predicted LIKELY.
                         if($signed(rs_val) >= 0) begin
                             br_late_enable <= 0;
+                            br_target <= relative_branch_target;
                             rd_index <= 31;
                             rd_value <= link_pc; // skip delay slot
                         end else begin
                             br_late_enable <= 1;
+                            br_target <= prediction_false_positive_recovery_pc;
                             rd_index <= 0;
                         end
                     end

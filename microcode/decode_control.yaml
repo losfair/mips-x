@@ -21,6 +21,7 @@ instructions:
     - early_branch_rel
     - early_branch_if_backward
   000001: # regimm
+    - regimm
     - regwrite # will be overriden by ALU selection
   001000: # addi
     - rt_override_rd
