@@ -20,6 +20,10 @@ module pipeline_alu(
     // Late branch done?
     br_late_done,
 
+    // Multiplication state.
+    latealu_mult_hi,
+    latealu_mult_lo,
+
     // Output Rd index.
     rd_index,
 
@@ -51,6 +55,7 @@ input wire [31:0] rs_val_pre_override, rt_val_pre_override;
 input wire rs_override_rd, rt_override_rd;
 input wire alu_const_override_rs, alu_const_override_rt;
 input wire br_late_done;
+input wire [31:0] latealu_mult_hi, latealu_mult_lo;
 
 output reg [4:0] rd_index;
 output reg [31:0] rd_value;
@@ -165,6 +170,31 @@ always @ (posedge clk) begin
                 latealu_op <= 6'b000011;
                 latealu_a0 <= rt_val;
                 latealu_a1[4:0] <= shift_bits;
+            end
+            7'b0011000: begin // mult
+                latealu_enable <= 1;
+                latealu_op <= 6'b000100;
+                latealu_a0 <= rs_val;
+                latealu_a1 <= rt_val;
+                rd_index <= 0; // disable regwrite
+            end
+            7'b0010001: begin // mthi
+                latealu_enable <= 1;
+                latealu_op <= 6'b000101;
+                latealu_a0 <= rs_val;
+                rd_index <= 0; // disable regwrite
+            end
+            7'b0010011: begin // mtlo
+                latealu_enable <= 1;
+                latealu_op <= 6'b000110;
+                latealu_a0 <= rs_val;
+                rd_index <= 0; // disable regwrite
+            end
+            7'b0010000: begin // mfhi
+                rd_value <= latealu_mult_hi;
+            end
+            7'b0010010: begin // mflo
+                rd_value <= latealu_mult_lo;
             end
             7'b0001000, 7'b0001001: begin // jr, jalr
                 br_late_enable <= 1;

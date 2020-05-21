@@ -11,3 +11,9 @@ instructions:
     - stall_b1
   000111: # srav
     - stall_b1
+  011000: # mult. Stall for one cycle to ensure the result is visible to ALU.
+    - stall_b0
+  010001: # mthi
+    - stall_b0
+  010011: # mtlo
+    - stall_b0

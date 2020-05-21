@@ -126,6 +126,9 @@ wire [2:0] mem_exception;
 // [LateALU] Result.
 wire [31:0] latealu_result;
 
+// [LateALU] Multiplication results.
+wire [31:0] latealu_hi, latealu_lo;
+
 // [REGWRITE] Final exception.
 wire [6:0] final_exception;
 assign exception_out = final_exception;
@@ -188,6 +191,7 @@ pipeline_alu pipeline_alu_0(
     rs_override_rd, rt_override_rd,
     alu_const_override_rs, alu_const_override_rt,
     br_late_done_d1,
+    latealu_hi, latealu_lo,
     rd_index,
     rd_value,
     br_late_enable,
@@ -221,7 +225,9 @@ pipeline_latealu pipeline_latealu_0(
     latealu_op,
     latealu_a0,
     latealu_a1,
-    latealu_result
+    latealu_result,
+    latealu_hi,
+    latealu_lo
 );
 
 // Stage 5: Regwrite.
