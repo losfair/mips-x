@@ -19,10 +19,9 @@ instructions:
     - early_branch
     - early_branch_rel
     - regwrite
-  10001: # bgezal
+  10001: # bgezal. Mostly used for bal, so LIKELY.
     - early_branch
     - early_branch_rel
-    - early_branch_if_backward
     - regwrite
   10011: # bgezall
     # LIKELY. Do not check branch direction.
