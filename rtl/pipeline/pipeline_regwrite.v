@@ -25,6 +25,12 @@ module pipeline_regwrite(
     // MEM output
     mem_out,
 
+    // LateALU enable?
+    latealu_enable,
+
+    // LateALU result
+    latealu_result,
+
     // Regfile ports.
     we, windex, win
 );
@@ -37,6 +43,8 @@ output wire [6:0] exception;
 input wire [4:0] rd_index;
 input wire regwrite_enable, memread_enable;
 input wire memop_disable;
+input wire latealu_enable;
+input wire [31:0] latealu_result;
 input wire [31:0] alu_out, mem_out;
 
 output wire we;
@@ -49,6 +57,9 @@ assign exception = {decode_exception, alu_exception, mem_exception};
 
 assign we = regwrite_enable && exception == 0 && rd_index != 0;
 assign windex = rd_index;
-assign win = (memread_enable & ~memop_disable) ? mem_out : alu_out;
+assign win =
+    latealu_enable ? latealu_result :
+    (memread_enable & ~memop_disable) ? mem_out :
+    alu_out;
 
 endmodule

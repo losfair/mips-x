@@ -35,6 +35,12 @@ module pipeline_alu(
     // Output whether to disable memwrite.
     memop_disable,
 
+    // Output LateALU parameters.
+    latealu_enable,
+    latealu_op,
+    latealu_a0,
+    latealu_a1,
+
     // Output exception.
     exception
 );
@@ -51,6 +57,9 @@ output reg [31:0] rd_value;
 output reg br_late_enable;
 output reg [31:0] br_target;
 output reg memop_disable;
+output reg latealu_enable;
+output reg [5:0] latealu_op;
+output reg [31:0] latealu_a0, latealu_a1;
 output reg [2:0] exception;
 
 // Rs/Rt/Rd indices.
@@ -102,6 +111,8 @@ always @ (posedge clk) begin
     br_late_enable <= 0;
     br_target <= 0;
     memop_disable <= 0;
+    latealu_enable <= 0;
+    latealu_op <= 0;
 
     if(rs_override_rd) rd_index <= rs_index;
     else if(rt_override_rd) rd_index <= rt_index;
@@ -137,12 +148,24 @@ always @ (posedge clk) begin
                 rd_value <= $signed(rs_val) < $signed(rt_val);
             7'b0101011, 7'b1001011: // sltu, sltiu
                 rd_value <= rs_val < rt_val;
-            7'b0000000, 7'b0000100: // sll, sllv
-                rd_value <= rt_val << shift_bits;
-            7'b0000010, 7'b0000110: // srl, srlv
-                rd_value <= rt_val >> shift_bits;
-            7'b0000011, 7'b0000111: // sra, srav
-                rd_value <= $signed(rt_val) >> shift_bits;
+            7'b0000000, 7'b0000100: begin // sll, sllv
+                latealu_enable <= 1;
+                latealu_op <= 6'b000001;
+                latealu_a0 <= rt_val;
+                latealu_a1[4:0] <= shift_bits;
+            end
+            7'b0000010, 7'b0000110: begin // srl, srlv
+                latealu_enable <= 1;
+                latealu_op <= 6'b000010;
+                latealu_a0 <= rt_val;
+                latealu_a1[4:0] <= shift_bits;
+            end
+            7'b0000011, 7'b0000111: begin // sra, srav
+                latealu_enable <= 1;
+                latealu_op <= 6'b000011;
+                latealu_a0 <= rt_val;
+                latealu_a1[4:0] <= shift_bits;
+            end
             7'b0001000, 7'b0001001: begin // jr, jalr
                 br_late_enable <= 1;
                 br_target <= rs_val;

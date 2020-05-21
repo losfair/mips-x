@@ -69,6 +69,9 @@ wire rs_override_rd, rt_override_rd;
 // [DECODE] Early branch command.
 wire [3:0] early_branch_cmd;
 
+// [DECODE] Stall cycles.
+wire [1:0] stall_cycles;
+
 // [DECODE] Override with ALU const.
 wire alu_const_override_rs, alu_const_override_rt;
 
@@ -101,6 +104,14 @@ wire memop_disable;
 wire memop_disable_d1;
 delay #(1, 1, 0) delay_memop_disable_d1(clk, rst, memop_disable, memop_disable_d1);
 
+// [ALU] LateALU control.
+wire latealu_enable;
+wire [5:0] latealu_op;
+wire [31:0] latealu_a0;
+wire [31:0] latealu_a1;
+wire latealu_enable_d1;
+delay #(1, 1, 0) delay_latealu_enable_d1(clk, rst, latealu_enable, latealu_enable_d1);
+
 // [ALU] Output exception.
 wire [2:0] alu_exception;
 wire [2:0] alu_exception_d1;
@@ -111,6 +122,9 @@ wire [31:0] mem_out_value;
 
 // [MEM] Memory exception.
 wire [2:0] mem_exception;
+
+// [LateALU] Result.
+wire [31:0] latealu_result;
 
 // [REGWRITE] Final exception.
 wire [6:0] final_exception;
@@ -123,7 +137,7 @@ pipeline_fetch pipeline_fetch_0(
     clk, rst,
     br_late_enable, br_late_target,
     early_branch_cmd,
-    memread_enable,
+    stall_cycles,
     current_pc, current_inst,
     br_late_done
 );
@@ -141,6 +155,8 @@ assign rs_override_rd = cs[24];
 assign rt_override_rd = cs[25];
 
 assign early_branch_cmd = cs[33:30];
+
+assign stall_cycles = cs[36:35];
 
 assign alu_const_override_rs = cs[40];
 assign alu_const_override_rt = cs[41];
@@ -177,10 +193,14 @@ pipeline_alu pipeline_alu_0(
     br_late_enable,
     br_late_target,
     memop_disable,
+    latealu_enable,
+    latealu_op,
+    latealu_a0,
+    latealu_a1,
     alu_exception
 );
 
-// Stage 4: MEM.
+// Stage 4a: MEM.
 wire [3:0] wbyte_enable;
 assign wbyte_enable = 4'b1111;
 pipeline_mem pipeline_mem_0(
@@ -195,6 +215,15 @@ pipeline_mem pipeline_mem_0(
     mem_exception
 );
 
+// Stage 4b: LateALU.
+pipeline_latealu pipeline_latealu_0(
+    clk, rst,
+    latealu_op,
+    latealu_a0,
+    latealu_a1,
+    latealu_result
+);
+
 // Stage 5: Regwrite.
 pipeline_regwrite pipeline_regwrite_0(
     decode_exception_d2,
@@ -207,6 +236,8 @@ pipeline_regwrite pipeline_regwrite_0(
     memop_disable_d1,
     rd_value_d1,
     mem_out_value,
+    latealu_enable_d1,
+    latealu_result,
     regfile_we,
     regfile_windex,
     regfile_win

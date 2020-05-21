@@ -13,4 +13,5 @@ pipeline/pipeline_regfetch.v
 pipeline/pipeline_bypass.v
 pipeline/pipeline_alu.v
 pipeline/pipeline_mem.v
+pipeline/pipeline_latealu.v
 pipeline/pipeline_regwrite.v
