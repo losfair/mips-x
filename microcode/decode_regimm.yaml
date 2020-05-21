@@ -1,0 +1,31 @@
+prefix_len: 5
+default_exception: false
+instructions:
+  00000: # bltz
+    - early_branch
+    - early_branch_rel
+    - early_branch_if_backward
+  00001: # bgez
+    - early_branch
+    - early_branch_rel
+    - early_branch_if_backward
+  10000: # bltzal
+    - early_branch
+    - early_branch_rel
+    - early_branch_if_backward
+    - regwrite
+  10010: # bltzall
+    # LIKELY. Do not check branch direction.
+    - early_branch
+    - early_branch_rel
+    - regwrite
+  10001: # bgezal
+    - early_branch
+    - early_branch_rel
+    - early_branch_if_backward
+    - regwrite
+  10011: # bgezall
+    # LIKELY. Do not check branch direction.
+    - early_branch
+    - early_branch_rel
+    - regwrite

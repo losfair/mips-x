@@ -196,18 +196,66 @@ always @ (posedge clk) begin
                 else br_late_enable <= 0 ^ backward_jump;
             end
             7'b1000001: // regimm
-                // regwrite enabled by default here. We need to override that by assigning 0 to rd_index.
-                // Also, branch prediction NOT APPLIED!
                 case (rt_index)
                     5'b00000: begin // bltz
-                        rd_index <= 0;
                         br_target <= relative_branch_target;
-                        if($signed(rs_val) < 0) br_late_enable <= 1;
+                        if($signed(rs_val) < 0) br_late_enable <= 1 ^ backward_jump;
+                        else br_late_enable <= 0 ^ backward_jump;
                     end
                     5'b00001: begin // bgez
-                        rd_index <= 0;
                         br_target <= relative_branch_target;
-                        if($signed(rs_val) >= 0) br_late_enable <= 1;
+                        if($signed(rs_val) >= 0) br_late_enable <= 1 ^ backward_jump;
+                        else br_late_enable <= 0 ^ backward_jump;
+                    end
+                    5'b10000: begin // bltzal
+                        br_target <= relative_branch_target;
+
+                        if($signed(rs_val) < 0) begin
+                            br_late_enable <= 1 ^ backward_jump;
+                            rd_index <= 31;
+                            rd_value <= link_pc; // skip delay slot
+                        end else begin
+                            br_late_enable <= 0 ^ backward_jump;
+                            rd_index <= 0;
+                        end
+                    end
+                    5'b10010: begin // bltzall
+                        br_target <= relative_branch_target;
+
+                        // Predicted LIKELY.
+                        if($signed(rs_val) < 0) begin
+                            br_late_enable <= 0;
+                            rd_index <= 31;
+                            rd_value <= link_pc; // skip delay slot
+                        end else begin
+                            br_late_enable <= 1;
+                            rd_index <= 0;
+                        end
+                    end
+                    5'b10001: begin // bgezal
+                        br_target <= relative_branch_target;
+
+                        if($signed(rs_val) >= 0) begin
+                            br_late_enable <= 1 ^ backward_jump;
+                            rd_index <= 31;
+                            rd_value <= link_pc; // skip delay slot
+                        end else begin
+                            br_late_enable <= 0 ^ backward_jump;
+                            rd_index <= 0;
+                        end
+                    end
+                    5'b10011: begin // bgezall
+                        br_target <= relative_branch_target;
+
+                        // Predicted LIKELY.
+                        if($signed(rs_val) >= 0) begin
+                            br_late_enable <= 0;
+                            rd_index <= 31;
+                            rd_value <= link_pc; // skip delay slot
+                        end else begin
+                            br_late_enable <= 1;
+                            rd_index <= 0;
+                        end
                     end
                     default:
                         exception <= 3'b001;
