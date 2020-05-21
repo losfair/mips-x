@@ -152,10 +152,7 @@ always @ (posedge clk) begin
             7'b0101011, 7'b1001011: // sltu, sltiu
                 rd_value <= rs_val < rt_val;
             7'b0000000, 7'b0000100: begin // sll, sllv
-                latealu_enable <= 1;
-                latealu_op <= 6'b000001;
-                latealu_a0 <= rt_val;
-                latealu_a1[4:0] <= shift_bits;
+                rd_value <= rt_val << shift_bits;
             end
             7'b0000010, 7'b0000110: begin // srl, srlv
                 latealu_enable <= 1;

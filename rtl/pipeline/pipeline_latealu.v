@@ -18,8 +18,6 @@ always @ (posedge clk) begin
     if(rst);
     else begin
         case (op)
-            6'b000001: // sll
-                result_out <= a0 << a1[4:0];
             6'b000010: // srl
                 result_out <= a0 >> a1[4:0];
             6'b000011: // sra

@@ -1,10 +1,8 @@
 prefix_len: 6
 default_exception: false
 instructions:
-  000000: # sll
-    - stall_b1
-  000100: # sllv
-    - stall_b1
+  # sll is special since it's used as NOP and pretty frequently elsewhere.
+  # So do not delay it.
   000010: # srl
     - stall_b1
   000110: # srlv
