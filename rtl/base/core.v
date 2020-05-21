@@ -66,9 +66,6 @@ delay #(1, 1, 0) delay_regwrite_enable_d2(clk, rst, regwrite_enable_d1, regwrite
 // [DECODE] ALU const mode.
 wire rs_override_rd, rt_override_rd;
 
-// [DECODE] ALU const mode.
-wire alu_const_mode_16bit_sext, alu_const_mode_shift;
-
 // [DECODE] Early branch command.
 wire [3:0] early_branch_cmd;
 
@@ -142,8 +139,6 @@ assign regwrite_enable = cs[19];
 
 assign rs_override_rd = cs[24];
 assign rt_override_rd = cs[25];
-assign alu_const_mode_16bit_sext = cs[26];
-assign alu_const_mode_shift = cs[27];
 
 assign early_branch_cmd = cs[33:30];
 
@@ -175,7 +170,6 @@ pipeline_alu pipeline_alu_0(
     current_inst_d1, current_pc_d1,
     bypassed_rs_val, bypassed_rt_val,
     rs_override_rd, rt_override_rd,
-    alu_const_mode_16bit_sext, alu_const_mode_shift,
     alu_const_override_rs, alu_const_override_rt,
     br_late_done_d1,
     rd_index,

@@ -3,64 +3,51 @@ instructions:
   000000: # alu
     - regwrite
   100011: # lw
-    - alu_const_mode_16bit_sext
     - rt_override_rd
     - regwrite
     - memread
   101011: # sw
-    - alu_const_mode_16bit_sext
     - memwrite
   000100: # beq
-    - alu_const_mode_16bit_sext
     - early_branch
     - early_branch_rel
     - early_branch_if_backward
     - early_branch_beq
   000101: # bne
-    - alu_const_mode_16bit_sext
     - early_branch
     - early_branch_rel
     - early_branch_if_backward
   000001: # regimm
-    - alu_const_mode_16bit_sext
     - regwrite # will be overriden by ALU selection
   001000: # addi
-    - alu_const_mode_16bit_sext
     - rt_override_rd
     - regwrite
     - alu_const_override_rt
   001001: # addiu
-    - alu_const_mode_16bit_sext
     - rt_override_rd
     - regwrite
     - alu_const_override_rt
   001100: # andi
-    - alu_const_mode_16bit_sext
     - rt_override_rd
     - regwrite
     - alu_const_override_rt
   001101: # ori
-    - alu_const_mode_16bit_sext
     - rt_override_rd
     - regwrite
     - alu_const_override_rt
   001110: # xori
-    - alu_const_mode_16bit_sext
     - rt_override_rd
     - regwrite
     - alu_const_override_rt
   001010: # slti
-    - alu_const_mode_16bit_sext
     - rt_override_rd
     - regwrite
     - alu_const_override_rt
   001011: # sltiu
-    - alu_const_mode_16bit_sext
     - rt_override_rd
     - regwrite
     - alu_const_override_rt
   001111: # lui
-    - alu_const_mode_16bit_sext
     - rt_override_rd
     - regwrite
     - alu_const_override_rt

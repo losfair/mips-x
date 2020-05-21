@@ -13,10 +13,6 @@ module pipeline_alu(
     rs_override_rd,
     rt_override_rd,
 
-    // ALU const mode.
-    alu_const_mode_16bit_sext,
-    alu_const_mode_shift,
-
     // Whether to override Rs/Rt with ALU const.
     alu_const_override_rs,
     alu_const_override_rt,
@@ -47,7 +43,6 @@ input wire clk, rst;
 input wire [31:0] inst_in, pc_in;
 input wire [31:0] rs_val_pre_override, rt_val_pre_override;
 input wire rs_override_rd, rt_override_rd;
-input wire alu_const_mode_16bit_sext, alu_const_mode_shift;
 input wire alu_const_override_rs, alu_const_override_rt;
 input wire br_late_done;
 
@@ -64,32 +59,25 @@ assign rs_index = inst_in[25:21];
 assign rt_index = inst_in[20:16];
 assign rd_pre_override = inst_in[15:11];
 
-reg [31:0] alu_const;
+wire [31:0] link_pc;
+assign link_pc = pc_in + 8;
+
+wire [31:0] alu_const;
+assign alu_const = {{16{inst_in[15]}}, inst_in[15:0]};
+wire [4:0] shift_const;
+assign shift_const = inst_in[10:6];
+
 reg [6:0] alu_func;
-reg [31:0] rs_val, rt_val;
+wire [31:0] rs_val, rt_val;
+assign rs_val = alu_const_override_rs ? alu_const : rs_val_pre_override;
+assign rt_val = alu_const_override_rt ? alu_const : rt_val_pre_override;
 
 // Waiting for br_late_done?
 reg waiting_for_br_late_done;
 
 always @ (*) begin
-    if(alu_const_mode_16bit_sext) alu_const = {{16{inst_in[15]}}, inst_in[15:0]};
-    else if(alu_const_mode_shift) alu_const = {27'b0, inst_in[10:6]};
-    else alu_const = 0;
-end
-
-always @ (*) begin
     if(inst_in[31:26] != 0) alu_func = {1'b1, inst_in[31:26]};
     else alu_func = {1'b0, inst_in[5:0]};
-end
-
-always @ (*) begin
-    if(alu_const_override_rs) rs_val = alu_const;
-    else rs_val = rs_val_pre_override;
-end
-
-always @ (*) begin
-    if(alu_const_override_rt) rt_val = alu_const;
-    else rt_val = rt_val_pre_override;
 end
 
 // We need to handle overflow here...
@@ -102,6 +90,11 @@ assign relative_branch_target = pc_in + 4 + (alu_const << 2);
 
 wire backward_jump;
 assign backward_jump = $signed(alu_const) < 0;
+
+// # of bits to shift.
+// ONLY VALID for sll/sllv/srl/srlv/sra/srav.
+wire [4:0] shift_bits;
+assign shift_bits = alu_func[2] ? rs_val[4:0] : shift_const; // alu_func[2] indicates the `v` suffix.
 
 always @ (posedge clk) begin
     exception <= 0;
@@ -122,7 +115,7 @@ always @ (posedge clk) begin
     end else begin
         waiting_for_br_late_done <= br_late_enable; // Delay slot
         case (alu_func)
-            7'b0100000, 7'b1001000, 7'b0100001, 7'b1001001: // add, addi
+            7'b0100000, 7'b1001000: // add, addi
                 if(add_out[32] != add_out[31]) exception <= 3'b010; // overflow
                 else rd_value <= add_out[31:0];
             7'b0100001, 7'b1001001: // addu, addiu
@@ -145,24 +138,24 @@ always @ (posedge clk) begin
             7'b0101011, 7'b1001011: // sltu, sltiu
                 rd_value <= rs_val < rt_val;
             7'b0000000, 7'b0000100: // sll, sllv
-                rd_value <= rt_val << rs_val[4:0];
+                rd_value <= rt_val << shift_bits;
             7'b0000010, 7'b0000110: // srl, srlv
-                rd_value <= rt_val >> rs_val[4:0];
+                rd_value <= rt_val >> shift_bits;
             7'b0000011, 7'b0000111: // sra, srav
-                rd_value <= $signed(rt_val) >> rs_val[4:0];
+                rd_value <= $signed(rt_val) >> shift_bits;
             7'b0001000, 7'b0001001: begin // jr, jalr
                 br_late_enable <= 1;
                 br_target <= rs_val;
                 rd_index <= 31;
-                rd_value <= pc_in + 8; // skip delay slot
+                rd_value <= link_pc; // skip delay slot
             end
             7'b0001100: // syscall
                 exception <= 3'b011;
 
-            7'b1000010, 7'b1000011: begin// j, jal
+            7'b1000010, 7'b1000011: begin // j, jal
                 // PC change already taken care of in fetch stage.
                 rd_index <= 31;
-                rd_value <= pc_in + 8; // skip delay slot
+                rd_value <= link_pc; // skip delay slot
             end
             7'b1001111: // lui
                 rd_value <= alu_const << 16;

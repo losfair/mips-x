@@ -10,10 +10,6 @@ signals:
   rs_override_rd: 24
   rt_override_rd: 25
 
-  # ALU const mode.
-  alu_const_mode_16bit_sext: 26
-  alu_const_mode_shift: 27
-
   # Early branch?
   early_branch: 30
   early_branch_rel: 31
