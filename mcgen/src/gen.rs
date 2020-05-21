@@ -16,6 +16,9 @@ pub struct Microcode {
     /// Length of the control prefix in bits, in the instruction.
     pub prefix_len: u32,
 
+    // Whether to default undefined instructions to raise exception.
+    pub default_exception: bool,
+
     /// Mappings from instruction prefixes to their control signals.
     pub instructions: BTreeMap<String, Vec<String>>,
 }
@@ -37,8 +40,12 @@ pub fn generate_rom(
 
     let mc_size = (1u32 << mc.prefix_len) as usize;
 
-    // set highest bit by default, to indicate an undefined instruction.
-    let mut out = vec![1u64 << 63; mc_size];
+    let default_word = if mc.default_exception {
+        1u64 << 63
+    } else {
+        0
+    };
+    let mut out = vec![default_word; mc_size];
 
     for i in 0..mc_size {
         // FIXME: Left-padding zeros in a more elegant way?

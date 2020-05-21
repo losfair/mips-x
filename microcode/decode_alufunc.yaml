@@ -1,0 +1,15 @@
+prefix_len: 6
+default_exception: false
+instructions:
+  000000: # sll
+    - stall_b1
+  000100: # sllv
+    - stall_b1
+  000010: # srl
+    - stall_b1
+  000110: # srlv
+    - stall_b1
+  000011: # sra
+    - stall_b1
+  000111: # srav
+    - stall_b1

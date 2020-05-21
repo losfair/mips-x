@@ -1,6 +1,9 @@
 signals:
   exc: 63
 
+  alufunc: 1
+  regimm: 2
+
   memread: 17
   memwrite: 18
   regwrite: 19
@@ -15,6 +18,10 @@ signals:
   early_branch_rel: 31
   early_branch_if_backward: 32
   early_branch_beq: 33
+
+  # Stall?
+  stall_b0: 35
+  stall_b1: 36
 
   # Whether to override Rs/Rt with ALU const.
   alu_const_override_rs: 40

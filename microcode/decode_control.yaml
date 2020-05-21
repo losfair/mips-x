@@ -1,11 +1,14 @@
 prefix_len: 6
+default_exception: true
 instructions:
   000000: # alu
+    - alufunc
     - regwrite
   100011: # lw
     - rt_override_rd
     - regwrite
     - memread
+    - stall_b1
   101011: # sw
     - memwrite
   000100: # beq

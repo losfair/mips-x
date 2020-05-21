@@ -1,4 +1,4 @@
-microcode.hex
+microcode_*.hex
 /mips-x
 code.txt
 netlist.json
