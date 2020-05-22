@@ -65,7 +65,7 @@ assign fetch_stall = (!first_cycle && stall_request != 0) | stall_counter != 0;
 assign im_enable = !fetch_stall;
 
 // Apply the override.
-assign inst_out = fetch_stall ? 0 : im_data;
+assign inst_out = (first_cycle || fetch_stall) ? 0 : im_data;
 
 im im_0(clk, im_enable, im_addr, pc_out, im_data, im_stall);
 prediction prediction_0(

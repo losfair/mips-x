@@ -1,7 +1,7 @@
-module core(clk, rst_in, exception_out);
+module core(clk, rst, exception_out);
 
 input wire clk;
-input wire rst_in;
+input wire rst;
 output wire [6:0] exception_out;
 
 wire regfile_we;
@@ -10,15 +10,6 @@ wire [31:0] regfile_win;
 wire [31:0] regfile_rout0, regfile_rout1;
 
 regfile regfile_0(clk, regfile_we, regfile_windex, regfile_win, regfile_rindex0, regfile_rout0, regfile_rindex1, regfile_rout1);
-
-// Reset for at least two cycles.
-reg [1:0] reset_buffer = 2'b11;
-always @ (posedge clk) begin
-    reset_buffer[0] <= reset_buffer[1];
-    reset_buffer[1] <= rst_in;
-end
-wire rst;
-assign rst = reset_buffer[0] | reset_buffer[1] | rst_in;
 
 // Control state
 
