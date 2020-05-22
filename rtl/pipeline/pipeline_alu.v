@@ -284,20 +284,7 @@ always @ (posedge clk) begin
                             rd_index <= 0;
                         end
                     end
-                    5'b10001: begin // bgezal
-                        // Predicted LIKELY.
-                        if($signed(rs_val) >= 0) begin
-                            br_late_enable <= 0;
-                            br_target <= relative_branch_target;
-                            rd_index <= 31;
-                            rd_value <= link_pc; // skip delay slot
-                        end else begin
-                            br_late_enable <= 1;
-                            br_target <= prediction_false_positive_recovery_pc;
-                            rd_index <= 0;
-                        end
-                    end
-                    5'b10011: begin // bgezall
+                    5'b10001, 5'b10011: begin // bgezal, bgezall
                         // Predicted LIKELY.
                         if($signed(rs_val) >= 0) begin
                             br_late_enable <= 0;
