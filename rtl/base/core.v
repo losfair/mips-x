@@ -2,7 +2,7 @@ module core(clk, rst, exception_out);
 
 input wire clk;
 input wire rst;
-output wire [6:0] exception_out;
+output wire [9:0] exception_out;
 
 wire regfile_we;
 wire [4:0] regfile_windex, regfile_rindex0, regfile_rindex1;
@@ -35,6 +35,11 @@ delay #(32, 1, 0) delay_current_inst_d1(clk, rst, current_inst, current_inst_d1)
 wire br_late_done;
 wire br_late_done_d1;
 delay #(1, 1, 0) delay_br_late_done_d1(clk, rst, br_late_done, br_late_done_d1);
+
+// [FETCH] Exception.
+wire [2:0] fetch_exception;
+wire [2:0] fetch_exception_d2; // Aligned with ALU Output.
+delay #(3, 2, 0) delay_fetch_exception_d2(clk, rst, fetch_exception, fetch_exception_d2);
 
 // [DECODE] Control signal register.
 wire [63:0] cs;
@@ -99,10 +104,12 @@ wire memop_disable;
 wire memop_disable_d1;
 delay #(1, 1, 0) delay_memop_disable_d1(clk, rst, memop_disable, memop_disable_d1);
 
-// [ALU] Disable decode stage exception.
-wire decode_exception_disable;
+// [ALU] Disable fetch/decode stage exception.
+wire early_exception_disable;
+wire [2:0] fetch_exception_d3; // Aligned with MEM Output.
+delay #(3, 1, 0) delay_fetch_exception_d3(clk, rst, early_exception_disable ? 3'b0 : fetch_exception_d2, fetch_exception_d3);
 wire decode_exception_d2; // Aligned with MEM Output.
-delay #(1, 1, 0) delay_decode_exception_d2(clk, rst, decode_exception_d1 & ~decode_exception_disable, decode_exception_d2);
+delay #(1, 1, 0) delay_decode_exception_d2(clk, rst, decode_exception_d1 & ~early_exception_disable, decode_exception_d2);
 
 // [ALU] LateALU control.
 wire latealu_enable;
@@ -130,7 +137,7 @@ wire [31:0] latealu_result;
 wire [31:0] latealu_hi, latealu_lo;
 
 // [REGWRITE] Final exception.
-wire [6:0] final_exception;
+wire [9:0] final_exception;
 assign exception_out = final_exception;
 wire has_final_exception;
 assign has_final_exception = final_exception != 0;
@@ -145,7 +152,8 @@ pipeline_fetch pipeline_fetch_0(
     stall_cycles,
     initial_pc,
     current_pc, current_inst,
-    br_late_done
+    br_late_done,
+    fetch_exception
 );
 
 // Stage 2a: Decode.
@@ -200,7 +208,7 @@ pipeline_alu pipeline_alu_0(
     br_late_enable,
     br_late_target,
     memop_disable,
-    decode_exception_disable,
+    early_exception_disable,
     latealu_enable,
     latealu_op,
     latealu_a0,
@@ -238,6 +246,7 @@ pipeline_latealu pipeline_latealu_0(
 // Stage 5: Regwrite.
 pipeline_regwrite pipeline_regwrite_0(
     clk, rst,
+    fetch_exception_d3,
     decode_exception_d2,
     alu_exception_d1,
     mem_exception,

@@ -2,7 +2,7 @@ module testbench();
 
 reg clk;
 reg rst;
-wire [6:0] exception;
+wire [9:0] exception;
 
 core core_0(clk, rst, exception);
 

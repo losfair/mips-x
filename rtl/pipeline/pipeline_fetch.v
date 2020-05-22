@@ -24,7 +24,10 @@ module pipeline_fetch(
     inst_out,
 
     // Output: Late branch done signal.
-    br_late_done_d1
+    br_late_done_d1,
+
+    // Output: FETCH stage exception.
+    fetch_exception
 );
 
 input wire clk, rst;
@@ -38,6 +41,7 @@ input wire [31:0] initial_pc;
 output wire [31:0] pc_out;
 output wire [31:0] inst_out;
 output reg br_late_done_d1;
+output wire [2:0] fetch_exception;
 
 wire [31:0] im_addr;
 wire [31:0] im_data;
@@ -67,7 +71,7 @@ assign im_enable = !fetch_stall;
 // Apply the override.
 assign inst_out = (first_cycle || fetch_stall) ? 0 : im_data;
 
-im im_0(clk, im_enable, im_addr, pc_out, im_data, im_stall);
+im im_0(clk, im_enable, im_addr, pc_out, im_data, im_stall, fetch_exception);
 prediction prediction_0(
     clk, rst,
     im_data,

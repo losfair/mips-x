@@ -2,6 +2,7 @@ module pipeline_regwrite(
     clk, rst,
 
     // Exceptions from all stages.
+    fetch_exception,
     decode_exception,
     alu_exception,
     mem_exception,
@@ -39,10 +40,11 @@ module pipeline_regwrite(
 
 input wire clk, rst;
 
+input wire [2:0] fetch_exception;
 input wire decode_exception;
 input wire [2:0] alu_exception;
 input wire [2:0] mem_exception;
-output wire [6:0] final_exception;
+output wire [9:0] final_exception;
 
 input wire [4:0] rd_index;
 input wire regwrite_enable, memread_enable;
@@ -57,10 +59,10 @@ output wire [31:0] win;
 
 wire [31:0] selected_source;
 
-wire [6:0] exception_in;
-assign exception_in = {decode_exception, alu_exception, mem_exception};
+wire [9:0] exception_in;
+assign exception_in = {fetch_exception, decode_exception, alu_exception, mem_exception};
 
-reg [6:0] exception;
+reg [9:0] exception;
 reg exception_enable; // Fast path
 
 assign final_exception = exception_enable ? exception : exception_in;

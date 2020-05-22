@@ -40,7 +40,7 @@ module pipeline_alu(
     memop_disable,
 
     // Output whether to disable DECODE stage exception.
-    decode_exception_disable,
+    early_exception_disable,
 
     // Output LateALU parameters.
     latealu_enable,
@@ -65,7 +65,7 @@ output reg [31:0] rd_value;
 output reg br_late_enable;
 output reg [31:0] br_target;
 output reg memop_disable;
-output reg decode_exception_disable;
+output reg early_exception_disable;
 output reg latealu_enable;
 output reg [5:0] latealu_op;
 output reg [31:0] latealu_a0, latealu_a1;
@@ -123,7 +123,7 @@ always @ (posedge clk) begin
     br_late_enable <= 0;
     br_target <= 0;
     memop_disable <= 0;
-    decode_exception_disable <= 0;
+    early_exception_disable <= 0;
     latealu_enable <= 0;
     latealu_op <= 0;
 
@@ -136,7 +136,7 @@ always @ (posedge clk) begin
     end else if(waiting_for_br_late_done && !br_late_done) begin
         rd_index <= 0;
         memop_disable <= 1;
-        decode_exception_disable <= 1;
+        early_exception_disable <= 1;
     end else begin
         waiting_for_br_late_done <= br_late_enable; // Delay slot
         case (alu_func)
