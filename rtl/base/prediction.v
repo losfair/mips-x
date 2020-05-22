@@ -54,6 +54,11 @@ always @ (posedge clk) npc_delay_slot <= npc + 4;
 wire [31:0] rel_offset;
 assign rel_offset = {{14{inst_feedback[15]}}, inst_feedback[15:0], 2'b0};
 
+// Rs & Rt indices. Visible BEFORE FF logic.
+wire [4:0] rs_index, rt_index;
+assign rs_index = inst_feedback[25:21];
+assign rt_index = inst_feedback[20:16];
+
 // Possible early branch targets. Calculated by FF logic.
 reg [31:0] early_branch_target_abs;
 reg [31:0] early_branch_target_rel;
@@ -61,13 +66,22 @@ reg [31:0] early_branch_target_rel;
 // Whether relative offset is less than zero. Calculated by FF logic.
 reg rel_offset_is_backward;
 
+// Whether `rs_index == rt_index == 0`. Calculated by FF logic.
+reg rs_rt_both_zero;
+
 // Selected early branch target. Visible AFTER FF logic.
 wire [31:0] early_branch_target;
 assign early_branch_target = early_branch_rel ? early_branch_target_rel : early_branch_target_abs;
 
 // Caculated early branch decision. AFTER FF logic.
 wire apply_early_branch;
-assign apply_early_branch = early_branch & (!early_branch_if_backward || rel_offset_is_backward);
+assign apply_early_branch =
+    early_branch &
+        (
+            !early_branch_if_backward || // unconditional or predicted likely
+            (early_branch_beq & rs_rt_both_zero) || // `beq` special case: `b`
+            rel_offset_is_backward // backward branches are predicted taken.
+        );
 
 // Whether this is the first cycle after reset;
 reg first_cycle;
@@ -89,6 +103,7 @@ always @ (posedge clk) begin
     early_branch_target_abs <= {npc_delay_slot[31:28], inst_feedback[25:0], 2'b0};
     early_branch_target_rel <= npc_delay_slot + rel_offset;
     rel_offset_is_backward <= $signed(rel_offset) < $signed(0);
+    rs_rt_both_zero <= rs_index == 0 && rt_index == 0;
 end
 
 always @ (posedge clk) begin

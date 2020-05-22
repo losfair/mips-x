@@ -17,7 +17,7 @@ signals:
   early_branch: 30
   early_branch_rel: 31
   early_branch_if_backward: 32
-  early_branch_beq: 33
+  early_branch_beq: 33 # special marker for `beq` instruction, where `rs == rt == 0` implies `b`.
 
   # Stall?
   stall_b0: 35

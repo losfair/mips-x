@@ -223,7 +223,9 @@ always @ (posedge clk) begin
             end
             7'b1000100: begin // beq
                 if(rs_val == rt_val) begin
-                    br_late_enable <= 1 ^ backward_jump;
+                    // `beq $0, $0, *` special case: = `b`
+                    if(rs_index == 0 && rt_index == 0) br_late_enable <= 0;
+                    else br_late_enable <= 1 ^ backward_jump;
                     br_target <= relative_branch_target;
                 end else begin
                     br_late_enable <= 0 ^ backward_jump;
