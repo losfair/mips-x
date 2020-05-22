@@ -56,7 +56,7 @@ reg br_late_done_hold;
 // - Override our current instruction output with nop (0).
 // - Notify prediction.
 // Visible AFTER FF logic.
-assign fetch_stall = (!first_cycle && stall_request != 0) | stall_counter != 0;
+assign fetch_stall = (!first_cycle && stall_request != 0) | stall_counter != 0 | im_stall;
 
 // Whether instruction memory read should be enabled.
 // Visible AFTER FF logic (next cycle for IM).

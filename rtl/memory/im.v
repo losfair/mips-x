@@ -13,7 +13,7 @@ initial begin
 end
 
 always @ (posedge clk) begin
-    stall <= !en;
+    stall <= 0;
 end
 
 always @ (posedge clk) begin
