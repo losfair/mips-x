@@ -1,11 +1,13 @@
 module pipeline_regwrite(
+    clk, rst,
+
     // Exceptions from all stages.
     decode_exception,
     alu_exception,
     mem_exception,
 
-    // Output: Final exception
-    exception,
+    // Output: Final exception. Aligned with REGWRITE INPUT.
+    final_exception,
 
     // Rd index
     rd_index,
@@ -35,10 +37,12 @@ module pipeline_regwrite(
     we, windex, win
 );
 
+input wire clk, rst;
+
 input wire decode_exception;
 input wire [2:0] alu_exception;
 input wire [2:0] mem_exception;
-output wire [6:0] exception;
+output wire [6:0] final_exception;
 
 input wire [4:0] rd_index;
 input wire regwrite_enable, memread_enable;
@@ -53,9 +57,25 @@ output wire [31:0] win;
 
 wire [31:0] selected_source;
 
-assign exception = {decode_exception, alu_exception, mem_exception};
+wire [6:0] exception_in;
+assign exception_in = {decode_exception, alu_exception, mem_exception};
 
-assign we = regwrite_enable && exception == 0 && rd_index != 0;
+reg [6:0] exception;
+reg exception_enable; // Fast path
+
+assign final_exception = exception_enable ? exception : exception_in;
+
+always @ (posedge clk) begin
+    if(rst) begin
+        exception <= 0;
+        exception_enable <= 0;
+    end else if(!exception && exception_in) begin
+        exception <= exception_in;
+        exception_enable <= 1;
+    end
+end
+
+assign we = regwrite_enable && final_exception == 0 && rd_index != 0;
 assign windex = rd_index;
 assign win =
     latealu_enable ? latealu_result :

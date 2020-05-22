@@ -14,6 +14,9 @@ module pipeline_fetch(
     // Stall request from DECODE stage.
     stall_request,
 
+    // Initial PC on reset.
+    initial_pc,
+
     // Output: PC.
     pc_out,
 
@@ -30,6 +33,7 @@ input wire [31:0] br_target;
 input wire [3:0] early_branch_cmd;
 
 input wire [1:0] stall_request;
+input wire [31:0] initial_pc;
 
 output wire [31:0] pc_out;
 output wire [31:0] inst_out;
@@ -70,13 +74,17 @@ prediction prediction_0(
     fetch_stall,
     br_late_enable, br_target,
     early_branch_cmd,
+    initial_pc,
     im_addr,
     br_late_done
 );
 
 // Aligned with IM output.
 always @ (posedge clk) begin
-    if(fetch_stall) begin
+    if(rst) begin
+        br_late_done_hold <= 0;
+        br_late_done_d1 <= 0;
+    end else if(fetch_stall) begin
         if(br_late_done) br_late_done_hold <= 1;
         br_late_done_d1 <= 0;
     end else begin

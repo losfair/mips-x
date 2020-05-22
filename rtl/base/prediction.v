@@ -15,6 +15,9 @@ module prediction(
     // Early branch command.
     early_branch_cmd,
 
+    // Initial PC.
+    initial_pc,
+
     // PC output for Fetch stage.
     npc,
 
@@ -35,6 +38,8 @@ assign early_branch = early_branch_cmd[0];
 assign early_branch_rel = early_branch_cmd[1];
 assign early_branch_if_backward = early_branch_cmd[2];
 assign early_branch_beq = early_branch_cmd[3];
+
+input wire [31:0] initial_pc;
 
 output wire [31:0] npc;
 output reg br_late_done;
@@ -88,7 +93,7 @@ end
 
 always @ (posedge clk) begin
     if(rst) begin
-        pc <= 0;
+        pc <= initial_pc;
         br_late_done <= 0;
         first_cycle <= 1;
     end else begin

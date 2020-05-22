@@ -20,6 +20,10 @@ end
 wire rst;
 assign rst = reset_buffer[0] | reset_buffer[1] | rst_in;
 
+// Control state
+
+reg [31:0] initial_pc = 32'b0;
+
 // Pipeline begin
 
 // Ports.
@@ -46,8 +50,8 @@ wire [63:0] cs;
 
 // [DECODE] Exception.
 wire decode_exception;
-wire decode_exception_d2;
-delay #(1, 2, 0) delay_decode_exception_d2(clk, rst, decode_exception, decode_exception_d2);
+wire decode_exception_d1; // Aligned with ALU Output.
+delay #(1, 1, 0) delay_decode_exception_d1(clk, rst, decode_exception, decode_exception_d1);
 
 // [DECODE] Memory r/w enable.
 wire memread_enable, memwrite_enable;
@@ -104,6 +108,11 @@ wire memop_disable;
 wire memop_disable_d1;
 delay #(1, 1, 0) delay_memop_disable_d1(clk, rst, memop_disable, memop_disable_d1);
 
+// [ALU] Disable decode stage exception.
+wire decode_exception_disable;
+wire decode_exception_d2; // Aligned with MEM Output.
+delay #(1, 1, 0) delay_decode_exception_d2(clk, rst, decode_exception_d1 & ~decode_exception_disable, decode_exception_d2);
+
 // [ALU] LateALU control.
 wire latealu_enable;
 wire [5:0] latealu_op;
@@ -132,6 +141,8 @@ wire [31:0] latealu_hi, latealu_lo;
 // [REGWRITE] Final exception.
 wire [6:0] final_exception;
 assign exception_out = final_exception;
+wire has_final_exception;
+assign has_final_exception = final_exception != 0;
 
 // Pipeline stages.
 
@@ -141,6 +152,7 @@ pipeline_fetch pipeline_fetch_0(
     br_late_enable, br_late_target,
     early_branch_cmd,
     stall_cycles,
+    initial_pc,
     current_pc, current_inst,
     br_late_done
 );
@@ -197,6 +209,7 @@ pipeline_alu pipeline_alu_0(
     br_late_enable,
     br_late_target,
     memop_disable,
+    decode_exception_disable,
     latealu_enable,
     latealu_op,
     latealu_a0,
@@ -215,6 +228,7 @@ pipeline_mem pipeline_mem_0(
     memread_enable_d1,
     memwrite_enable_d1,
     memop_disable,
+    has_final_exception,
     mem_out_value,
     mem_exception
 );
@@ -232,6 +246,7 @@ pipeline_latealu pipeline_latealu_0(
 
 // Stage 5: Regwrite.
 pipeline_regwrite pipeline_regwrite_0(
+    clk, rst,
     decode_exception_d2,
     alu_exception_d1,
     mem_exception,
