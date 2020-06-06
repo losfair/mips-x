@@ -17,4 +17,4 @@ This is my course design for Computer Organization @ NUAA, 2020 Spring.
 
 All rights reserved before July 15, 2020. Open sourced for educational purpose only.
 
-Automatically relicensed with the MIT license after July 15, 2020.
+Automatically relicensed under the MIT license after July 15, 2020.
