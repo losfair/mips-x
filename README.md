@@ -12,3 +12,9 @@ This is my course design for Computer Organization @ NUAA, 2020 Spring.
 - Static branch prediction
 - Partial bypassing (ALU->ALU). 3 cycles per load/store.
 - Runs at 110 MHz on a Xilinx Artix-7 and 50 MHz on a Cyclone IV board.
+
+## License
+
+All rights reserved before July 15, 2020. Open sourced for educational purpose only.
+
+Automatically relicensed with the MIT license after July 15, 2020.
