@@ -1,13 +1,10 @@
-
+read_verilog rtl/config.v
 read_verilog rtl/base/*.v
 read_verilog rtl/pipeline/*.v
+read_verilog rtl/memory/*.v
 
 hierarchy -top core
+hierarchy -check
 
-# high-level synthesis
-proc; opt; fsm; opt; memory; opt
-
-stat;
-
-write_verilog synth.v
-write_json netlist.json
+synth_ice40 -json mips-x.json
+stat

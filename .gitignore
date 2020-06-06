@@ -3,3 +3,4 @@ microcode_*.hex
 code.txt
 netlist.json
 synth.v
+code.dump
