@@ -4,6 +4,12 @@ signals:
   alufunc: 1
   regimm: 2
 
+  mwidth_b0: 10
+  mwidth_b1: 11
+
+  # Memory result zero-extension
+  mzext: 12
+
   memread: 17
   memwrite: 18
   regwrite: 19
@@ -26,3 +32,6 @@ signals:
   # Whether to override Rs/Rt with ALU const.
   alu_const_override_rs: 40
   alu_const_override_rt: 41
+
+  # ALU const zero-extension (sign-extension by default)
+  alu_const_zext: 42

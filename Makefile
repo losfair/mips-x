@@ -1,4 +1,6 @@
-simulate: microcode bootcode
+simulate: simulate-no-bootcode bootcode
+
+simulate-no-bootcode: microcode
 	cd rtl && iverilog -o ../mips-x -c list.txt
 
 synthesis:
@@ -18,4 +20,4 @@ bootcode:
 clean:
 	rm microcode_control.hex microcode_alufunc.hex
 
-.PHONY: simulate microcode bootcode clean
+.PHONY: simulate-no-bootcode microcode bootcode clean

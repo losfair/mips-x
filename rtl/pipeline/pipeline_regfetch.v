@@ -25,4 +25,6 @@ assign rindex1 = inst_in[20:16]; // rt
 assign rs_val = rout0;
 assign rt_val = rout1;
 
+always @ (negedge clk) $display("[%0d] Regfetch result: %0d %0d", $time, rs_val, rt_val);
+
 endmodule

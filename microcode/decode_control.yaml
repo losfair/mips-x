@@ -9,8 +9,28 @@ instructions:
     - regwrite
     - memread
     - stall_b1
+    - mwidth_b0
+    - mwidth_b1
+  100000: # lb
+    - rt_override_rd
+    - regwrite
+    - memread
+    - stall_b1
+    - mwidth_b0
+  100100: # lbu
+    - rt_override_rd
+    - regwrite
+    - memread
+    - stall_b1
+    - mwidth_b0
+    - mzext
   101011: # sw
     - memwrite
+    - mwidth_b0
+    - mwidth_b1
+  101000: # sb
+    - memwrite
+    - mwidth_b0
   000100: # beq
     - early_branch
     - early_branch_rel
@@ -35,14 +55,17 @@ instructions:
     - rt_override_rd
     - regwrite
     - alu_const_override_rt
+    - alu_const_zext
   001101: # ori
     - rt_override_rd
     - regwrite
     - alu_const_override_rt
+    - alu_const_zext
   001110: # xori
     - rt_override_rd
     - regwrite
     - alu_const_override_rt
+    - alu_const_zext
   001010: # slti
     - rt_override_rd
     - regwrite
@@ -60,3 +83,11 @@ instructions:
   000011: # jal
     - regwrite
     - early_branch
+  000111: # bgtz
+    - early_branch
+    - early_branch_rel
+    - early_branch_if_backward
+  000110: # blez
+    - early_branch
+    - early_branch_rel
+    - early_branch_if_backward

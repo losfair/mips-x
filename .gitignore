@@ -8,3 +8,4 @@ code.dump
 *.bin
 *.elf
 /mips-x.json
+/*.asc

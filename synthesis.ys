@@ -1,3 +1,4 @@
+read_verilog rtl/config.v
 read_verilog rtl/base/*.v
 read_verilog rtl/pipeline/*.v
 read_verilog rtl/memory/*.v

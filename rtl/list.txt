@@ -1,4 +1,5 @@
 testbench.v
+config.v
 base/core.v
 base/delay.v
 base/regfile.v
@@ -7,6 +8,7 @@ base/prediction.v
 memory/dm.v
 memory/im.v
 memory/pipeline_decode.v
+memory/maccess.v
 
 pipeline/pipeline_fetch.v
 pipeline/pipeline_regfetch.v

@@ -48,7 +48,12 @@ reg [31:0] pc;
 
 // Address of the branch delay slot of `npc`. Aligned with DECODE stage.
 reg [31:0] npc_delay_slot;
+
+`ifdef CONFIG_NO_DELAY_SLOT
+always @ (posedge clk) npc_delay_slot <= npc;
+`else
 always @ (posedge clk) npc_delay_slot <= npc + 4;
+`endif
 
 // Relative offset. Visible BEFORE FF logic.
 wire [31:0] rel_offset;

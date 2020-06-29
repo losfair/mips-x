@@ -49,6 +49,14 @@ wire decode_exception;
 wire decode_exception_d1; // Aligned with ALU Output.
 delay #(1, 1, 0) delay_decode_exception_d1(clk, rst, decode_exception, decode_exception_d1);
 
+// [DECODE] Memory access width.
+wire [1:0] maccess_width, maccess_width_d1;
+delay #(2, 1, 0) delay_maccess_width_d1(clk, rst, maccess_width, maccess_width_d1);
+
+// [DECODE] Memory read zero-extension.
+wire maccess_zext, maccess_zext_d1;
+delay #(1, 1, 0) delay_maccess_zext_d1(clk, rst, maccess_zext, maccess_zext_d1);
+
 // [DECODE] Memory r/w enable.
 wire memread_enable, memwrite_enable;
 wire memread_enable_d1, memread_enable_d2, memwrite_enable_d1;
@@ -74,6 +82,9 @@ wire [1:0] stall_cycles;
 
 // [DECODE] Override with ALU const.
 wire alu_const_override_rs, alu_const_override_rt;
+
+// [DECODE] ALU const zero extension.
+wire alu_const_zext;
 
 // [REGFETCH] Values of Rs and Rt.
 wire [31:0] rs_val, rt_val;
@@ -161,6 +172,9 @@ pipeline_decode pipeline_decode_0(clk, current_inst, cs);
 
 assign decode_exception = cs[63];
 
+assign maccess_width = cs[11:10];
+assign maccess_zext = cs[12];
+
 assign memread_enable = cs[17];
 assign memwrite_enable = cs[18];
 assign regwrite_enable = cs[19];
@@ -174,6 +188,8 @@ assign stall_cycles = cs[36:35];
 
 assign alu_const_override_rs = cs[40];
 assign alu_const_override_rt = cs[41];
+
+assign alu_const_zext = cs[42];
 
 // Stage 2b: Regfetch.
 pipeline_regfetch pipeline_regfetch_0(
@@ -201,6 +217,7 @@ pipeline_alu pipeline_alu_0(
     bypassed_rs_val, bypassed_rt_val,
     rs_override_rd, rt_override_rd,
     alu_const_override_rs, alu_const_override_rt,
+    alu_const_zext,
     br_late_done_d1,
     latealu_hi, latealu_lo,
     rd_index,
@@ -223,7 +240,8 @@ pipeline_mem pipeline_mem_0(
     clk, rst,
     bypassed_rt_val_d1,
     rd_value,
-    wbyte_enable,
+    maccess_width_d1,
+    maccess_zext_d1,
     memread_enable_d1,
     memwrite_enable_d1,
     memop_disable,

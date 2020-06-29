@@ -23,34 +23,29 @@ input wire alu_regwrite_enable;
 
 output reg [31:0] out_rs_val, out_rt_val;
 
-reg [4:0] known_indices[1:0];
-reg [31:0] known_values[1:0];
+reg [4:0] mem_rd_index;
+reg [31:0] mem_value;
 
 always @ (*) begin
     if(decode_rs_index == 0) out_rs_val = 0;
-    else if(decode_rs_index == alu_rd_index) out_rs_val = alu_rd_val;
-    else if(decode_rs_index == known_indices[1]) out_rs_val = known_values[1];
-    else if(decode_rs_index == known_indices[0]) out_rs_val = known_values[0];
+    else if(decode_rs_index == alu_rd_index && alu_regwrite_enable) out_rs_val = alu_rd_val;
+    else if(decode_rs_index == mem_rd_index) out_rs_val = mem_value;
     else out_rs_val = regfetch_rs_val;
 end
 
 always @ (*) begin
     if(decode_rt_index == 0) out_rt_val = 0;
-    else if(decode_rt_index == alu_rd_index) out_rt_val = alu_rd_val;
-    else if(decode_rt_index == known_indices[1]) out_rt_val = known_values[1];
-    else if(decode_rt_index == known_indices[0]) out_rt_val = known_values[0];
+    else if(decode_rt_index == alu_rd_index && alu_regwrite_enable) out_rt_val = alu_rd_val;
+    else if(decode_rt_index == mem_rd_index) out_rt_val = mem_value;
     else out_rt_val = regfetch_rt_val;
 end
 
 always @ (posedge clk) begin
     if(rst) begin
-        known_indices[0] <= 0;
-        known_indices[1] <= 0;
+        mem_rd_index <= 0;
     end else begin
-        known_indices[0] <= known_indices[1];
-        known_indices[1] <= alu_regwrite_enable ? alu_rd_index : 0;
-        known_values[0] <= known_values[1];
-        known_values[1] <= alu_rd_val;
+        mem_rd_index <= alu_regwrite_enable ? alu_rd_index : 0;
+        mem_value <= alu_rd_val;
     end
 end
 

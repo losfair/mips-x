@@ -1,0 +1,1 @@
+`define CONFIG_NO_DELAY_SLOT

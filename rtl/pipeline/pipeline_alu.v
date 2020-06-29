@@ -17,6 +17,9 @@ module pipeline_alu(
     alu_const_override_rs,
     alu_const_override_rt,
 
+    // Whether to perform zero-extension instead of sign-extension on ALU const.
+    alu_const_zext,
+
     // Late branch done?
     br_late_done,
 
@@ -57,6 +60,7 @@ input wire [31:0] inst_in, pc_in;
 input wire [31:0] rs_val_pre_override, rt_val_pre_override;
 input wire rs_override_rd, rt_override_rd;
 input wire alu_const_override_rs, alu_const_override_rt;
+input wire alu_const_zext;
 input wire br_late_done;
 input wire [31:0] latealu_mult_hi, latealu_mult_lo;
 
@@ -78,13 +82,18 @@ assign rt_index = inst_in[20:16];
 assign rd_pre_override = inst_in[15:11];
 
 wire [31:0] link_pc;
+
+`ifdef CONFIG_NO_DELAY_SLOT
+assign link_pc = pc_in + 4;
+`else
 assign link_pc = pc_in + 8;
+`endif
 
 wire [31:0] prediction_false_positive_recovery_pc;
 assign prediction_false_positive_recovery_pc = link_pc;
 
 wire [31:0] alu_const;
-assign alu_const = {{16{inst_in[15]}}, inst_in[15:0]};
+assign alu_const = {{16{inst_in[15] & !alu_const_zext}}, inst_in[15:0]};
 wire [4:0] shift_const;
 assign shift_const = inst_in[10:6];
 
@@ -95,6 +104,19 @@ assign rt_val = alu_const_override_rt ? alu_const : rt_val_pre_override;
 
 // Waiting for br_late_done?
 reg waiting_for_br_late_done;
+
+`ifdef CONFIG_NO_DELAY_SLOT
+// Branch taken?
+// Used to signal a delay slot.
+reg branch_taken;
+task report_branch_taken;
+    branch_taken <= 1;
+endtask
+`else
+task report_branch_taken;
+;
+endtask
+`endif
 
 always @ (*) begin
     if(inst_in[31:26] != 0) alu_func = {1'b1, inst_in[31:26]};
@@ -107,7 +129,12 @@ assign add_out = {rs_val[31], rs_val} + {rt_val[31], rt_val};
 assign sub_out = {rs_val[31], rs_val} - {rt_val[31], rt_val};
 
 wire [31:0] relative_branch_target;
+
+`ifdef CONFIG_NO_DELAY_SLOT
+assign relative_branch_target = pc_in + (alu_const << 2);
+`else
 assign relative_branch_target = pc_in + 4 + (alu_const << 2);
+`endif
 
 wire backward_jump;
 assign backward_jump = $signed(alu_const) < 0;
@@ -127,6 +154,10 @@ always @ (posedge clk) begin
     latealu_enable <= 0;
     latealu_op <= 0;
 
+`ifdef CONFIG_NO_DELAY_SLOT
+    branch_taken <= 0;
+`endif
+
     if(rs_override_rd) rd_index <= rs_index;
     else if(rt_override_rd) rd_index <= rt_index;
     else rd_index <= rd_pre_override;
@@ -137,7 +168,18 @@ always @ (posedge clk) begin
         rd_index <= 0;
         memop_disable <= 1;
         early_exception_disable <= 1;
-    end else begin
+    end
+`ifdef CONFIG_NO_DELAY_SLOT
+    // The immediate next instruction after a taken branch is a delay slot.
+    // If we are configured not to support delay slots, skip that instruction.
+    else if(branch_taken) begin
+        waiting_for_br_late_done <= br_late_enable;
+        rd_index <= 0;
+        memop_disable <= 1;
+        early_exception_disable <= 1;
+    end
+`endif
+    else begin
         waiting_for_br_late_done <= br_late_enable; // Delay slot
         case (alu_func)
             7'b0100000, 7'b1001000: // add, addi
@@ -163,6 +205,7 @@ always @ (posedge clk) begin
             7'b0101011, 7'b1001011: // sltu, sltiu
                 rd_value <= rs_val < rt_val;
             7'b0000000, 7'b0000100: begin // sll, sllv
+                $display("[%0d] SLL/SLLV alu_func[2] = %b, %0d, %0d, %0d", $time, alu_func[2], rt_val_pre_override, rt_val, shift_bits);
                 rd_value <= rt_val << shift_bits;
             end
             7'b0000010, 7'b0000110: begin // srl, srlv
@@ -207,9 +250,12 @@ always @ (posedge clk) begin
                 br_target <= rs_val;
                 rd_index <= 31;
                 rd_value <= link_pc; // skip delay slot
+                report_branch_taken();
             end
-            7'b0001100: // syscall
+            7'b0001100: begin // syscall
+                $display("SYSCALL!");
                 exception <= 3'b011;
+            end
 
             7'b1000010, 7'b1000011: begin // j, jal
                 // PC change already taken care of in fetch stage.
@@ -218,7 +264,7 @@ always @ (posedge clk) begin
             end
             7'b1001111: // lui
                 rd_value <= alu_const << 16;
-            7'b1100011, 7'b1101011: begin // lw, sw
+            7'b1100011, 7'b1101011, 7'b1100000, 7'b1101000, 7'b1100100: begin // lw, sw, lb, sb, lbu
                 rd_value <= rs_val + alu_const;
             end
             7'b1000100: begin // beq
@@ -227,6 +273,7 @@ always @ (posedge clk) begin
                     if(rs_index == 0 && rt_index == 0) br_late_enable <= 0;
                     else br_late_enable <= 1 ^ backward_jump;
                     br_target <= relative_branch_target;
+                    report_branch_taken();
                 end else begin
                     br_late_enable <= 0 ^ backward_jump;
                     br_target <= prediction_false_positive_recovery_pc;
@@ -236,6 +283,27 @@ always @ (posedge clk) begin
                 if(rs_val != rt_val) begin
                     br_late_enable <= 1 ^ backward_jump;
                     br_target <= relative_branch_target;
+                    report_branch_taken();
+                end else begin
+                    br_late_enable <= 0 ^ backward_jump;
+                    br_target <= prediction_false_positive_recovery_pc;
+                end
+            end
+            7'b1000111: begin // bgtz
+                if($signed(rs_val) > 0) begin
+                    br_late_enable <= 1 ^ backward_jump;
+                    br_target <= relative_branch_target;
+                    report_branch_taken();
+                end else begin
+                    br_late_enable <= 0 ^ backward_jump;
+                    br_target <= prediction_false_positive_recovery_pc;
+                end
+            end
+            7'b1000110: begin // blez
+                if($signed(rs_val) <= 0) begin
+                    br_late_enable <= 1 ^ backward_jump;
+                    br_target <= relative_branch_target;
+                    report_branch_taken();
                 end else begin
                     br_late_enable <= 0 ^ backward_jump;
                     br_target <= prediction_false_positive_recovery_pc;
@@ -247,6 +315,7 @@ always @ (posedge clk) begin
                         if($signed(rs_val) < 0) begin
                             br_late_enable <= 1 ^ backward_jump;
                             br_target <= relative_branch_target;
+                            report_branch_taken();
                         end else begin
                             br_late_enable <= 0 ^ backward_jump;
                             br_target <= prediction_false_positive_recovery_pc;
@@ -256,6 +325,7 @@ always @ (posedge clk) begin
                         if($signed(rs_val) >= 0) begin
                             br_late_enable <= 1 ^ backward_jump;
                             br_target <= relative_branch_target;
+                            report_branch_taken();
                         end else begin
                             br_late_enable <= 0 ^ backward_jump;
                             br_target <= prediction_false_positive_recovery_pc;
@@ -267,10 +337,12 @@ always @ (posedge clk) begin
                             br_target <= relative_branch_target;
                             rd_index <= 31;
                             rd_value <= link_pc; // skip delay slot
+                            report_branch_taken();
                         end else begin
                             br_late_enable <= 0 ^ backward_jump;
                             br_target <= prediction_false_positive_recovery_pc;
                             rd_index <= 0;
+                            report_branch_taken();
                         end
                     end
                     5'b10010: begin // bltzall
@@ -280,6 +352,7 @@ always @ (posedge clk) begin
                             br_target <= relative_branch_target;
                             rd_index <= 31;
                             rd_value <= link_pc; // skip delay slot
+                            report_branch_taken();
                         end else begin
                             br_late_enable <= 1;
                             br_target <= prediction_false_positive_recovery_pc;
@@ -293,6 +366,7 @@ always @ (posedge clk) begin
                             br_target <= relative_branch_target;
                             rd_index <= 31;
                             rd_value <= link_pc; // skip delay slot
+                            report_branch_taken();
                         end else begin
                             br_late_enable <= 1;
                             br_target <= prediction_false_positive_recovery_pc;
