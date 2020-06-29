@@ -1,16 +1,6 @@
 prefix_len: 6
 default_exception: false
 instructions:
-  # sll is special since it's used as NOP and pretty frequently elsewhere.
-  # So do not delay it.
-  000010: # srl
-    - stall_b1
-  000110: # srlv
-    - stall_b1
-  000011: # sra
-    - stall_b1
-  000111: # srav
-    - stall_b1
   011000: # mult. Stall for one cycle to ensure the result is visible to ALU.
     - stall_b0
   010001: # mthi

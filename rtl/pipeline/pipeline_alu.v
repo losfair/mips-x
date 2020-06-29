@@ -209,16 +209,10 @@ always @ (posedge clk) begin
                 rd_value <= rt_val << shift_bits;
             end
             7'b0000010, 7'b0000110: begin // srl, srlv
-                latealu_enable <= 1;
-                latealu_op <= 6'b000010;
-                latealu_a0 <= rt_val;
-                latealu_a1[4:0] <= shift_bits;
+                rd_value <= rt_val >> shift_bits;
             end
             7'b0000011, 7'b0000111: begin // sra, srav
-                latealu_enable <= 1;
-                latealu_op <= 6'b000011;
-                latealu_a0 <= rt_val;
-                latealu_a1[4:0] <= shift_bits;
+                rd_value <= $signed(rt_val) >>> shift_bits;
             end
             7'b0011000: begin // mult
                 latealu_enable <= 1;

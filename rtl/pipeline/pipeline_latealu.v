@@ -20,10 +20,6 @@ always @ (posedge clk) begin
     if(rst);
     else begin
         case (op)
-            6'b000010: // srl
-                result_out <= a0 >> a1[4:0];
-            6'b000011: // sra
-                result_out <= $signed(a0) >>> a1[4:0];
             6'b000100: // mult
                 {hi, lo} <= {{32{a0[31]}}, a0} * {{32{a1[31]}}, a1};
             6'b000101: // mthi
