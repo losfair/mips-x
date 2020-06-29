@@ -3,6 +3,7 @@ signals:
 
   alufunc: 1
   regimm: 2
+  cp0: 3
 
   mwidth_b0: 10
   mwidth_b1: 11
@@ -13,7 +14,6 @@ signals:
   memread: 17
   memwrite: 18
   regwrite: 19
-  cp0: 20
 
   # Whether to override Rd with Rs/Rt.
   rs_override_rd: 24

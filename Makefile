@@ -13,6 +13,7 @@ microcode:
 	./mcgen/target/release/mcgen -d ./microcode/signals.yaml -m ./microcode/decode_control.yaml > ./microcode_control.hex
 	./mcgen/target/release/mcgen -d ./microcode/signals.yaml -m ./microcode/decode_alufunc.yaml > ./microcode_alufunc.hex
 	./mcgen/target/release/mcgen -d ./microcode/signals.yaml -m ./microcode/decode_regimm.yaml > ./microcode_regimm.hex
+	./mcgen/target/release/mcgen -d ./microcode/signals.yaml -m ./microcode/decode_cp0.yaml > ./microcode_cp0.hex
 
 bootcode:
 	make -C bootcode

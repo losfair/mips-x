@@ -13,7 +13,11 @@ regfile regfile_0(clk, regfile_we, regfile_windex, regfile_win, regfile_rindex0,
 
 // Control state
 
-reg [31:0] initial_pc = 32'b0;
+`ifdef CONFIG_ENTRY_0x34
+reg [31:0] initial_pc = 32'h34;
+`else
+reg [31:0] initial_pc = 32'h0;
+`endif
 
 // Pipeline begin
 
@@ -147,6 +151,9 @@ wire [31:0] latealu_result;
 // [LateALU] Multiplication results.
 wire [31:0] latealu_hi, latealu_lo;
 
+// [LateALU] CPR[14].
+wire [31:0] latealu_cpr14;
+
 // [REGWRITE] Final exception.
 wire [9:0] final_exception;
 assign exception_out = final_exception;
@@ -220,6 +227,7 @@ pipeline_alu pipeline_alu_0(
     alu_const_zext,
     br_late_done_d1,
     latealu_hi, latealu_lo,
+    latealu_cpr14,
     rd_index,
     rd_value,
     br_late_enable,
@@ -258,7 +266,8 @@ pipeline_latealu pipeline_latealu_0(
     latealu_a1,
     latealu_result,
     latealu_hi,
-    latealu_lo
+    latealu_lo,
+    latealu_cpr14
 );
 
 // Stage 5: Regwrite.

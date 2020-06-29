@@ -27,6 +27,9 @@ module pipeline_alu(
     latealu_mult_hi,
     latealu_mult_lo,
 
+    // CPR[14].
+    latealu_cpr14,
+
     // Output Rd index.
     rd_index,
 
@@ -63,6 +66,7 @@ input wire alu_const_override_rs, alu_const_override_rt;
 input wire alu_const_zext;
 input wire br_late_done;
 input wire [31:0] latealu_mult_hi, latealu_mult_lo;
+input wire [31:0] latealu_cpr14;
 
 output reg [4:0] rd_index;
 output reg [31:0] rd_value;
@@ -105,15 +109,15 @@ assign rt_val = alu_const_override_rt ? alu_const : rt_val_pre_override;
 // Waiting for br_late_done?
 reg waiting_for_br_late_done;
 
+reg branch_taken_no_delay_slot;
+
 `ifdef CONFIG_NO_DELAY_SLOT
-// Branch taken?
-// Used to signal a delay slot.
-reg branch_taken;
-task report_branch_taken;
-    branch_taken <= 1;
+// No branch has delay slot if configured not to.
+task report_normal_branch_taken;
+    branch_taken_no_delay_slot <= 1;
 endtask
 `else
-task report_branch_taken;
+task report_normal_branch_taken;
 ;
 endtask
 `endif
@@ -153,10 +157,7 @@ always @ (posedge clk) begin
     early_exception_disable <= 0;
     latealu_enable <= 0;
     latealu_op <= 0;
-
-`ifdef CONFIG_NO_DELAY_SLOT
-    branch_taken <= 0;
-`endif
+    branch_taken_no_delay_slot <= 0;
 
     if(rs_override_rd) rd_index <= rs_index;
     else if(rt_override_rd) rd_index <= rt_index;
@@ -169,16 +170,12 @@ always @ (posedge clk) begin
         memop_disable <= 1;
         early_exception_disable <= 1;
     end
-`ifdef CONFIG_NO_DELAY_SLOT
-    // The immediate next instruction after a taken branch is a delay slot.
-    // If we are configured not to support delay slots, skip that instruction.
-    else if(branch_taken) begin
+    else if(branch_taken_no_delay_slot) begin
         waiting_for_br_late_done <= br_late_enable;
         rd_index <= 0;
         memop_disable <= 1;
         early_exception_disable <= 1;
     end
-`endif
     else begin
         waiting_for_br_late_done <= br_late_enable; // Delay slot
         case (alu_func)
@@ -244,13 +241,16 @@ always @ (posedge clk) begin
                 br_target <= rs_val;
                 rd_index <= 31;
                 rd_value <= link_pc; // skip delay slot
-                report_branch_taken();
+                report_normal_branch_taken();
             end
             7'b0001100: begin // syscall
-                $display("SYSCALL!");
-                exception <= 3'b011;
+                br_late_enable <= 1;
+                br_target <= 'b0;
+                branch_taken_no_delay_slot <= 1; // syscall has no delay slot
+                latealu_enable <= 1;
+                latealu_op <= 6'b001000;
+                latealu_a0 <= pc_in;
             end
-
             7'b1000010, 7'b1000011: begin // j, jal
                 // PC change already taken care of in fetch stage.
                 rd_index <= 31;
@@ -267,7 +267,7 @@ always @ (posedge clk) begin
                     if(rs_index == 0 && rt_index == 0) br_late_enable <= 0;
                     else br_late_enable <= 1 ^ backward_jump;
                     br_target <= relative_branch_target;
-                    report_branch_taken();
+                    report_normal_branch_taken();
                 end else begin
                     br_late_enable <= 0 ^ backward_jump;
                     br_target <= prediction_false_positive_recovery_pc;
@@ -277,7 +277,7 @@ always @ (posedge clk) begin
                 if(rs_val != rt_val) begin
                     br_late_enable <= 1 ^ backward_jump;
                     br_target <= relative_branch_target;
-                    report_branch_taken();
+                    report_normal_branch_taken();
                 end else begin
                     br_late_enable <= 0 ^ backward_jump;
                     br_target <= prediction_false_positive_recovery_pc;
@@ -287,7 +287,7 @@ always @ (posedge clk) begin
                 if($signed(rs_val) > 0) begin
                     br_late_enable <= 1 ^ backward_jump;
                     br_target <= relative_branch_target;
-                    report_branch_taken();
+                    report_normal_branch_taken();
                 end else begin
                     br_late_enable <= 0 ^ backward_jump;
                     br_target <= prediction_false_positive_recovery_pc;
@@ -297,7 +297,7 @@ always @ (posedge clk) begin
                 if($signed(rs_val) <= 0) begin
                     br_late_enable <= 1 ^ backward_jump;
                     br_target <= relative_branch_target;
-                    report_branch_taken();
+                    report_normal_branch_taken();
                 end else begin
                     br_late_enable <= 0 ^ backward_jump;
                     br_target <= prediction_false_positive_recovery_pc;
@@ -309,7 +309,7 @@ always @ (posedge clk) begin
                         if($signed(rs_val) < 0) begin
                             br_late_enable <= 1 ^ backward_jump;
                             br_target <= relative_branch_target;
-                            report_branch_taken();
+                            report_normal_branch_taken();
                         end else begin
                             br_late_enable <= 0 ^ backward_jump;
                             br_target <= prediction_false_positive_recovery_pc;
@@ -319,7 +319,7 @@ always @ (posedge clk) begin
                         if($signed(rs_val) >= 0) begin
                             br_late_enable <= 1 ^ backward_jump;
                             br_target <= relative_branch_target;
-                            report_branch_taken();
+                            report_normal_branch_taken();
                         end else begin
                             br_late_enable <= 0 ^ backward_jump;
                             br_target <= prediction_false_positive_recovery_pc;
@@ -331,12 +331,12 @@ always @ (posedge clk) begin
                             br_target <= relative_branch_target;
                             rd_index <= 31;
                             rd_value <= link_pc; // skip delay slot
-                            report_branch_taken();
+                            report_normal_branch_taken();
                         end else begin
                             br_late_enable <= 0 ^ backward_jump;
                             br_target <= prediction_false_positive_recovery_pc;
                             rd_index <= 0;
-                            report_branch_taken();
+                            report_normal_branch_taken();
                         end
                     end
                     5'b10010: begin // bltzall
@@ -346,7 +346,7 @@ always @ (posedge clk) begin
                             br_target <= relative_branch_target;
                             rd_index <= 31;
                             rd_value <= link_pc; // skip delay slot
-                            report_branch_taken();
+                            report_normal_branch_taken();
                         end else begin
                             br_late_enable <= 1;
                             br_target <= prediction_false_positive_recovery_pc;
@@ -360,7 +360,7 @@ always @ (posedge clk) begin
                             br_target <= relative_branch_target;
                             rd_index <= 31;
                             rd_value <= link_pc; // skip delay slot
-                            report_branch_taken();
+                            report_normal_branch_taken();
                         end else begin
                             br_late_enable <= 1;
                             br_target <= prediction_false_positive_recovery_pc;
@@ -370,6 +370,30 @@ always @ (posedge clk) begin
                     default:
                         exception <= 3'b001;
                 endcase
+            7'b1010000: begin // cp0
+                if(inst_in[25]) begin // eret
+                    br_late_enable <= 1;
+                    br_target <= latealu_cpr14;
+                    branch_taken_no_delay_slot <= 1; // eret has no delay slot
+                    latealu_enable <= 1;
+                    latealu_op <= 6'b001001;
+                end else begin
+                    case(inst_in[24:21])
+                        4'b0000: begin // mfc0
+                            latealu_enable <= 1;
+                            latealu_op <= 6'b001010;
+                            latealu_a0 <= inst_in[15:11];
+                        end
+                        4'b0100: begin // mtc0
+                            latealu_enable <= 1;
+                            latealu_op <= 6'b001011;
+                            latealu_a0 <= inst_in[15:11];
+                            latealu_a1 <= rt_val;
+                        end
+                        default: exception <= 3'b001;
+                    endcase
+                end
+            end
             default:
                 exception <= 3'b001; // bad op
         endcase

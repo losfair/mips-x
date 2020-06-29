@@ -1,0 +1,10 @@
+prefix_len: 5
+default_exception: true
+instructions:
+  00000: # mfc0
+    - stall_b1 # 3-cycle latency
+    - rt_override_rd
+    - regwrite
+  00100: # mtc0
+    - stall_b0 # wait for CPR14 to be visible
+  10000: [] # eret

@@ -91,3 +91,5 @@ instructions:
     - early_branch
     - early_branch_rel
     - early_branch_if_backward
+  010000: # CP0
+    - cp0

@@ -1,1 +1,2 @@
-`define CONFIG_NO_DELAY_SLOT
+//`define CONFIG_NO_DELAY_SLOT
+`define CONFIG_ENTRY_0x34
