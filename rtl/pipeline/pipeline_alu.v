@@ -202,7 +202,6 @@ always @ (posedge clk) begin
             7'b0101011, 7'b1001011: // sltu, sltiu
                 rd_value <= rs_val < rt_val;
             7'b0000000, 7'b0000100: begin // sll, sllv
-                $display("[%0d] SLL/SLLV alu_func[2] = %b, %0d, %0d, %0d", $time, alu_func[2], rt_val_pre_override, rt_val, shift_bits);
                 rd_value <= rt_val << shift_bits;
             end
             7'b0000010, 7'b0000110: begin // srl, srlv
