@@ -16,7 +16,7 @@ pub struct Microcode {
     /// Length of the control prefix in bits, in the instruction.
     pub prefix_len: u32,
 
-    // Whether to default undefined instructions to raise exception.
+    /// Whether to default undefined instructions to raise exception.
     pub default_exception: bool,
 
     /// Mappings from instruction prefixes to their control signals.
