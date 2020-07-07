@@ -28,7 +28,7 @@ end
 always @ (posedge clk) rindex0_was_written <= we && rindex0 == windex;
 always @ (posedge clk) rindex1_was_written <= we && rindex1 == windex;
 always @ (posedge clk) win_d1 <= win;
-
+/*
 always @ (posedge clk) begin
     if(we) begin
         $write("[%0d] ", $time);
@@ -44,5 +44,6 @@ always @ (negedge clk) begin
     for(i = 0; i < 32; i = i + 1) $write("<%0d>: %0d, ", i, store[i]);
     $write("\n");
 end
+*/
 
 endmodule
